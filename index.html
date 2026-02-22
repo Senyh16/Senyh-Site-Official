@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Senyh Site</title>
+<link rel="stylesheet" href="game-style.css">
+</head>
+<body>
+
+<!-- MAIN HUB -->
+<div id="intro-screen">
+    <h1>SENYH SITE</h1>
+    <h2>Choose a Game</h2>
+    <button class="game-btn" data-game="number-key-game">Press The Correct Numbers Game</button>
+</div>
+
+<!-- BGM -->
+<audio id="bgm" src="bgm.mp3" loop></audio>
+
+<!-- GAME SECTION -->
+<section id="game-section" style="display:none; position:relative;">
+    <button id="back-btn">← Back</button>
+
+    <h2>Press the number that appears!</h2>
+    <p>Time left: <span id="time-left">30</span> seconds</p>
+    <p>Score: <span id="score">0</span></p>
+    <p>High Score: <span id="high-score">0</span></p>
+
+    <div id="current-number"></div>
+
+    <!-- MOBILE NUMBER PAD -->
+    <div id="number-pad">
+        <button class="num-btn">1</button>
+        <button class="num-btn">2</button>
+        <button class="num-btn">3</button>
+        <button class="num-btn">4</button>
+        <button class="num-btn">5</button>
+        <button class="num-btn">6</button>
+        <button class="num-btn">7</button>
+        <button class="num-btn">8</button>
+        <button class="num-btn">9</button>
+        <button class="num-btn zero-btn">0</button>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="end-screen">
+        <h1>Nayszs One! PALO!</h1>
+        <p>Your Score: <span id="final-score">0</span></p>
+        <p>High Score: <span id="final-highscore">0</span></p>
+        <button onclick="playAgain()">Play Again</button>
+    </div>
+
+</section>
+
+<script>
+const bgm = document.getElementById('bgm');
+const introScreen = document.getElementById('intro-screen');
+const gameSection = document.getElementById('game-section');
+const gameButtons = document.querySelectorAll('.game-btn');
+const backBtn = document.getElementById('back-btn');
+const numberButtons = document.querySelectorAll('.num-btn');
+
+// Sounds
+const endScreenSound = new Audio('endsound.mp3');
+const gameClickSound = new Audio('gameclick.mp3');
+const wrongSound = new Audio('wrong.mp3');
+const buttonClickSound = new Audio('buttonclick.mp3'); // NEW: for all buttons
+
+let score = 0;
+let timeLeft = 30;
+let currentNumber = 0;
+let typedNumber = '';
+let timerInterval;
+
+let highScore = localStorage.getItem('numberGameHighScore') || 0;
+document.getElementById('high-score').textContent = highScore;
+
+// --- PLAY BUTTON CLICK SOUND ---
+function playButtonSound(){
+    const sound = buttonClickSound.cloneNode();
+    sound.play();
+}
+
+// --- START GAME ---
+function startNumberGame(){
+    score = 0;
+    timeLeft = 30;
+    typedNumber = '';
+
+    document.getElementById('score').textContent = score;
+    document.getElementById('time-left').textContent = timeLeft;
+    document.getElementById('end-screen').style.display = 'none';
+
+    spawnNumber();
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('time-left').textContent = timeLeft;
+
+        if(timeLeft <= 0){
+            clearInterval(timerInterval);
+            showEndScreen();
+        }
+    }, 1000);
+}
+
+// --- SPAWN NUMBER ---
+function spawnNumber(){
+    currentNumber = Math.floor(Math.random() * 99) + 1;
+    document.getElementById('current-number').textContent = currentNumber;
+    typedNumber = '';
+}
+
+// --- PLAY CORRECT SOUND + BOUNCE ---
+function playCorrectSound(button){
+    const sound = gameClickSound.cloneNode();
+    sound.play();
+
+    if(button){
+        button.style.transform = "scale(1.3)";
+        setTimeout(()=>{ button.style.transform = ""; }, 120);
+    }
+}
+
+// --- HANDLE INPUT ---
+function handleInput(digit, button){
+    if(document.getElementById('end-screen').style.display === 'block') return;
+
+    typedNumber += digit;
+
+    if(parseInt(typedNumber) === currentNumber){
+        score++;
+        document.getElementById('score').textContent = score;
+        playCorrectSound(button);
+        spawnNumber();
+    }
+    else if(parseInt(typedNumber) > currentNumber){
+        typedNumber = '';
+        wrongSound.currentTime = 0;
+        wrongSound.play();
+
+        if(button){
+            button.style.transform = "scale(0.9)";
+            setTimeout(()=>{ button.style.transform = ""; }, 100);
+        }
+    }
+}
+
+// --- KEYBOARD SUPPORT ---
+document.addEventListener('keydown', (e) => {
+    if(e.key >= '0' && e.key <= '9'){
+        handleInput(e.key);
+    }
+});
+
+// --- NUMBER BUTTON TAP / CLICK ---
+numberButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        handleInput(btn.textContent, btn);
+    });
+});
+
+// --- END SCREEN ---
+function showEndScreen(){
+    bgm.pause();
+
+    document.getElementById('final-score').textContent = score;
+
+    if(score > highScore){
+        highScore = score;
+        localStorage.setItem('numberGameHighScore', highScore);
+    }
+
+    document.getElementById('final-highscore').textContent = highScore;
+    document.getElementById('end-screen').style.display = 'block';
+
+    endScreenSound.currentTime = 0;
+    endScreenSound.play();
+}
+
+// --- PLAY AGAIN ---
+function playAgain(){
+    document.getElementById('end-screen').style.display = 'none';
+    endScreenSound.pause();
+    bgm.play();
+    startNumberGame();
+}
+
+// --- GAME BUTTONS ---
+gameButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        playButtonSound();
+        introScreen.style.display = 'none';
+        gameSection.style.display = 'block';
+        bgm.play().catch(()=>{});
+        startNumberGame();
+    });
+});
+
+// --- BACK BUTTON ---
+backBtn.addEventListener('click', () => {
+    playButtonSound();
+    clearInterval(timerInterval);
+    gameSection.style.display = 'none';
+    document.getElementById('end-screen').style.display = 'none';
+    introScreen.style.display = 'flex';
+    bgm.pause();
+});
+</script>
+
+</body>
+</html>
