@@ -21,8 +21,8 @@ button {
     color: #000;
     border: 5px solid #000;
     border-radius: 30px;
-    padding: 20px 50px; /* BIG & cartoony */
-    font-size: 32px;    /* BIG FONT */
+    padding: 20px 50px;
+    font-size: 32px;
     cursor: pointer;
     transition: all 0.15s;
     box-shadow: 6px 6px 0 #000;
@@ -61,6 +61,12 @@ section {
     box-shadow: 4px 4px 0 #000;
 }
 
+/* Mascot Emoji */
+#mascot {
+    font-size: 50px;
+    margin: 20px auto;
+}
+
 /* End Screen GUI */
 #end-screen {
     font-family: 'Comic Sans MS', cursive;
@@ -75,6 +81,9 @@ section {
     text-align: center;
     padding: 20px;
     display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     z-index: 9999;
 }
 
@@ -129,26 +138,21 @@ section {
     font-weight: bold;
 }
 
-/* ------------------ Number Button Press & Bounce Fix ------------------ */
-
-/* Smooth transition for number buttons */
+/* Number Buttons */
 .num-btn {
     transition: transform 0.08s ease;
-    -webkit-tap-highlight-color: transparent; /* Removes mobile tap highlight */
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* Shrink when pressing (click or tap) */
 .num-btn:active {
-    transform: scale(0.9) !important;
+    transform: scale(1.2) !important;
     box-shadow: 2px 2px 0 #000;
 }
 
-/* Remove outline when focused on mobile */
 .num-btn:focus {
     outline: none;
 }
 
-/* Hover effect only for devices that support hover */
 @media (hover: hover) {
     .num-btn:hover {
         transform: scale(1.1);
