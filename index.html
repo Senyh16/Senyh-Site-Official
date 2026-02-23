@@ -70,13 +70,22 @@ let typedNumber = '';
 let timerInterval;
 let currentGame = "";
 let expectedOrder = 0;
-
 let highScore = 0;
 
 // BUTTON CLICK SOUND
 function playButtonSound(){
     const sound = buttonClickSound.cloneNode();
     sound.play();
+}
+
+// 🔥 MOBILE + PC BUTTON FIX
+function animateButtonPress(button){
+    button.style.transition = "transform 0.08s ease";
+    button.style.transform = "scale(1.15)";
+
+    setTimeout(() => {
+        button.style.transform = "scale(1)";
+    }, 80);
 }
 
 // START GAME
@@ -137,15 +146,18 @@ function createNumberButtons(shuffle){
         btn.textContent = num;
 
         btn.addEventListener('click', () => {
-            btn.style.transform = "scale(0.95)";
-            setTimeout(()=>{ btn.style.transform = ""; },100);
+            animateButtonPress(btn);
 
             if(currentGame === "number-key-game"){
-                handleNumberGame(num, btn);
+                handleNumberGame(num);
             }
             else if(currentGame === "order-game"){
                 handleOrderGame(num, btn);
             }
+        });
+
+        btn.addEventListener('touchstart', () => {
+            animateButtonPress(btn);
         });
 
         numberPad.appendChild(btn);
@@ -159,7 +171,7 @@ function spawnNumber(){
     typedNumber = '';
 }
 
-function handleNumberGame(digit, button){
+function handleNumberGame(digit){
     typedNumber += digit;
 
     if(parseInt(typedNumber) === currentNumber){
@@ -246,3 +258,4 @@ backBtn.addEventListener('click', () => {
 
 </body>
 </html>
+
