@@ -27,7 +27,6 @@
 
 <!-- GAME SECTION -->
 <section id="game-section" style="display:none; position:relative;">
-
     <button id="back-btn">← Back</button>
 
     <h2 id="game-title"></h2>
@@ -42,7 +41,7 @@
 
     <!-- END SCREEN -->
     <div id="end-screen">
-        <h1>Waw Galing!</h1>
+        <h1 id="end-title">Waw Galing!</h1>
         <p>Your Score: <span id="final-score">0</span></p>
         <p>High Score: <span id="final-highscore">0</span></p>
         <button onclick="playAgain()">Play Again</button>
@@ -58,6 +57,9 @@ const gameButtons = document.querySelectorAll('.game-btn');
 const backBtn = document.getElementById('back-btn');
 const numberPad = document.getElementById('number-pad');
 
+const endScreen = document.getElementById('end-screen');
+const endTitle = document.getElementById('end-title');
+
 const endScreenSound = new Audio('endsound.mp3');
 const gameClickSound = new Audio('gameclick.mp3');
 const wrongSound = new Audio('wrong.mp3');
@@ -72,54 +74,51 @@ let currentGame = "";
 let expectedOrder = 0;
 let highScore = 0;
 
+// --- COMBO SYSTEM ---
+let combo = 0; 
+let comboTimeout;
+
 // BUTTON CLICK SOUND
 function playButtonSound(){
     const sound = buttonClickSound.cloneNode();
     sound.play();
 }
 
-// 🔥 MOBILE + PC BUTTON FIX
-function animateButtonPress(button){
-    button.style.transition = "transform 0.08s ease";
-    button.style.transform = "scale(1.15)";
-
-    setTimeout(() => {
-        button.style.transform = "scale(1)";
-    }, 80);
-}
-
-// START GAME
+// --- START GAME ---
 function startGame(gameType){
+    // STOP END SCREEN SOUND CLEANLY
+    endScreenSound.pause();
+    endScreenSound.currentTime = 0;
+
     currentGame = gameType;
     score = 0;
     timeLeft = 30;
     typedNumber = '';
     expectedOrder = 0;
+    combo = 0;
 
     document.getElementById('score').textContent = score;
     document.getElementById('time-left').textContent = timeLeft;
-    document.getElementById('end-screen').style.display = 'none';
+    endScreen.style.display = 'none';
     document.getElementById('current-number').style.display = "block";
-
     numberPad.innerHTML = "";
 
     highScore = localStorage.getItem(gameType + 'HighScore') || 0;
     document.getElementById('high-score').textContent = highScore;
 
     if(gameType === "number-key-game"){
-        document.getElementById('game-title').textContent =
-        "Press the number that appears!";
+        document.getElementById('game-title').textContent = "Press the number that appears!";
         createNumberButtons(false);
         spawnNumber();
     }
 
     if(gameType === "order-game"){
-        document.getElementById('game-title').textContent =
-        "Click Numbers In Order (0–9)";
+        document.getElementById('game-title').textContent = "Click Numbers In Order (0–9)";
         document.getElementById('current-number').style.display = "none";
         createNumberButtons(true);
     }
 
+    // TIMER
     clearInterval(timerInterval);
     timerInterval = setInterval(() => {
         timeLeft--;
@@ -132,62 +131,67 @@ function startGame(gameType){
     }, 1000);
 }
 
-// CREATE BUTTONS
+// --- CREATE NUMBER BUTTONS ---
 function createNumberButtons(shuffle){
     let numbers = [...Array(10).keys()];
-
-    if(shuffle){
-        numbers.sort(() => Math.random() - 0.5);
-    }
+    if(shuffle) numbers.sort(() => Math.random() - 0.5);
 
     numbers.forEach(num => {
         const btn = document.createElement('button');
         btn.classList.add('num-btn');
         btn.textContent = num;
 
+        // BUTTON CLICK
         btn.addEventListener('click', () => {
-            animateButtonPress(btn);
+            // MOBILE FIX: quick big-small animation
+            btn.style.transition = "transform 0.08s";
+            btn.style.transform = "scale(1.2)";
+            setTimeout(()=>{ btn.style.transform = ""; }, 80);
 
-            if(currentGame === "number-key-game"){
-                handleNumberGame(num);
-            }
-            else if(currentGame === "order-game"){
-                handleOrderGame(num, btn);
-            }
-        });
-
-        btn.addEventListener('touchstart', () => {
-            animateButtonPress(btn);
+            if(currentGame === "number-key-game") handleNumberGame(num, btn);
+            else if(currentGame === "order-game") handleOrderGame(num, btn);
         });
 
         numberPad.appendChild(btn);
     });
 }
 
-// FIRST GAME LOGIC
+// --- FIRST GAME LOGIC ---
 function spawnNumber(){
     currentNumber = Math.floor(Math.random() * 99) + 1;
     document.getElementById('current-number').textContent = currentNumber;
     typedNumber = '';
 }
 
-function handleNumberGame(digit){
+function handleNumberGame(digit, button){
     typedNumber += digit;
 
     if(parseInt(typedNumber) === currentNumber){
         score++;
         document.getElementById('score').textContent = score;
         gameClickSound.cloneNode().play();
+
+        // --- COMBO SYSTEM ---
+        combo++;
+        clearTimeout(comboTimeout);
+        comboTimeout = setTimeout(()=>{ combo = 0; }, 1500); // reset after 1.5s
+        if(combo > 1){
+            endTitle.textContent = "Combo x" + combo + "🔥";
+            endTitle.style.transform = "scale(1.2)";
+            setTimeout(()=>{ endTitle.style.transform = ""; endTitle.textContent="Waw Galing!"; }, 300);
+        }
+
         spawnNumber();
     }
     else if(parseInt(typedNumber) > currentNumber){
         typedNumber = '';
         wrongSound.currentTime = 0;
         wrongSound.play();
+        combo = 0;
     }
 }
 
-// SECOND GAME LOGIC
+// --- SECOND GAME LOGIC ---
 function handleOrderGame(num, button){
     if(num === expectedOrder){
         gameClickSound.cloneNode().play();
@@ -195,7 +199,6 @@ function handleOrderGame(num, button){
         button.style.opacity = "0.4";
 
         expectedOrder++;
-
         if(expectedOrder > 9){
             score++;
             document.getElementById('score').textContent = score;
@@ -203,16 +206,15 @@ function handleOrderGame(num, button){
             numberPad.innerHTML = "";
             createNumberButtons(true);
         }
-    }
-    else{
+    } else {
         wrongSound.currentTime = 0;
         wrongSound.play();
     }
 }
 
-// END SCREEN
+// --- END SCREEN ---
 function showEndScreen(){
-    bgm.pause();
+    fadeOutBGM(); // smooth fade out
     document.getElementById('final-score').textContent = score;
 
     if(score > highScore){
@@ -221,20 +223,27 @@ function showEndScreen(){
     }
 
     document.getElementById('final-highscore').textContent = highScore;
-    document.getElementById('end-screen').style.display = 'block';
+
+    // END SCREEN ANIMATION
+    endScreen.style.display = 'block';
+    endScreen.style.transform = "scale(0)";
+    setTimeout(()=>{ endScreen.style.transform = "scale(1)"; }, 50);
 
     endScreenSound.currentTime = 0;
     endScreenSound.play();
 }
 
-// PLAY AGAIN
+// --- PLAY AGAIN ---
 function playAgain(){
-    document.getElementById('end-screen').style.display = 'none';
+    endScreenSound.pause();
+    endScreenSound.currentTime = 0;
+
+    endScreen.style.display = 'none';
     bgm.play();
     startGame(currentGame);
 }
 
-// GAME BUTTONS
+// --- GAME BUTTONS ---
 gameButtons.forEach(btn => {
     btn.addEventListener('click', () => {
         playButtonSound();
@@ -245,17 +254,36 @@ gameButtons.forEach(btn => {
     });
 });
 
-// BACK BUTTON
+// --- BACK BUTTON ---
 backBtn.addEventListener('click', () => {
     playButtonSound();
+
+    endScreenSound.pause();
+    endScreenSound.currentTime = 0;
+
     clearInterval(timerInterval);
     gameSection.style.display = 'none';
-    document.getElementById('end-screen').style.display = 'none';
+    endScreen.style.display = 'none';
     introScreen.style.display = 'flex';
-    bgm.pause();
+    fadeOutBGM();
 });
+
+// --- BGM FADE OUT ---
+function fadeOutBGM(){
+    let fadeAudio = setInterval(() => {
+        if(bgm.volume > 0.05){
+            bgm.volume -= 0.05;
+        } else {
+            bgm.volume = 0;
+            bgm.pause();
+            clearInterval(fadeAudio);
+            bgm.volume = 1;
+        }
+    }, 50);
+}
 </script>
 
 </body>
 </html>
+
 
